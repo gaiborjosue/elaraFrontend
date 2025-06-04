@@ -8,12 +8,15 @@ import { Input } from "@/components/ui/input"
 // Removed Avatar, AvatarFallback, AvatarImage as they are replaced for the user icon
 import { PlantInfoCard } from "@/components/plant-info-card"
 import { SymptomPlantCarousel } from "@/components/symptom-plant-carousel"
-import { ChevronDown, AlertCircle, SunIcon as Sunflower, User } from "lucide-react" // Added User icon
+import { RecipeCard } from "@/components/recipe-card"
+import { SavedRecipesDrawer } from "@/components/saved-recipes-drawer"
+import { ChevronDown, AlertCircle, SunIcon as Sunflower, User, BookOpen, Download } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 // Removed cn import as it's no longer used
 import { SharedHeader } from "@/components/shared-header"
 import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
 
 interface PlantDetail {
   plantName: string
@@ -34,11 +37,132 @@ interface ToolResultOutput {
   output: Record<string, PlantDetail>
 }
 
+interface Recipe {
+  recipeName: string
+  ingredients: string[]
+  instructions: string
+}
+
+interface RecipeToolResult {
+  output: Recipe
+}
+
+interface SaveRecipeResult {
+  success: boolean
+  message: string
+  recipeId?: string
+}
+
+interface SavedRecipesResult {
+  savedRecipes: any[]
+  count: number
+  error?: string
+}
+
+interface PDFDownloadResult {
+  success: boolean
+  message: string
+  downloadUrl?: string
+  data?: {
+    symptom: string
+    recipeName: string
+    ingredients: string[]
+    instructions: string
+  }
+}
+
 export default function ChatPage() {
   const { isAuthenticated, token, loading } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const [savedRecipesOpen, setSavedRecipesOpen] = useState(false)
+
+  // Helper functions for handling tool actions
+  const handleSaveRecipe = async (recipe: Recipe, symptom: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'}/saveRecipe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          symptom,
+          recipeName: recipe.recipeName,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Recipe saved",
+          description: "Recipe has been saved to your collection.",
+          duration: 3000,
+        })
+        return true
+      } else {
+        throw new Error('Failed to save recipe')
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save recipe. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return false
+    }
+  }
+
+  const handleDownloadPDF = async (recipe: Recipe, symptom: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'}/downloadRecipePDF`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          symptom,
+          recipeName: recipe.recipeName,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+        }),
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${recipe.recipeName.replace(/\s+/g, '_')}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        
+        toast({
+          title: "PDF downloaded",
+          description: "Recipe PDF has been downloaded.",
+          duration: 3000,
+        })
+        return true
+      } else {
+        throw new Error('Failed to download PDF')
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download PDF. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return false
+    }
+  }
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -194,9 +318,9 @@ export default function ChatPage() {
           )}
 
           {messages.map((message) => {
-            const hasCarousel =
+            const hasToolResults =
               message.role === "assistant" &&
-              message.toolInvocations?.some((ti) => ti.state === "result" && ti.toolName === "findHerbalRemedies")
+              message.toolInvocations?.some((ti) => ti.state === "result")
             return (
               <div key={message.id} data-role={message.role}>
                 {message.role === "user" ? (
@@ -241,11 +365,12 @@ export default function ChatPage() {
                               {message.content}
                             </ReactMarkdown>
                           </div>
-                        ) : !hasCarousel ? (
+                        ) : !hasToolResults ? (
                           <p className="text-gray-500 italic">Processing your request...</p>
                         ) : null}
 
                         {message.toolInvocations?.map((toolInvocation) => {
+                          // Handle findHerbalRemedies tool
                           if (toolInvocation.state === "result" && toolInvocation.toolName === "findHerbalRemedies") {
                             const resultData = toolInvocation.result as ToolResultOutput
                             if (resultData && resultData.output && Object.keys(resultData.output).length > 0) {
@@ -262,6 +387,90 @@ export default function ChatPage() {
                               )
                             }
                           }
+                          
+                          // Handle generateRecipe tool
+                          if (toolInvocation.state === "result" && toolInvocation.toolName === "generateRecipe") {
+                            const resultData = toolInvocation.result as RecipeToolResult
+                            if (resultData && resultData.output) {
+                              return (
+                                <div key={toolInvocation.toolCallId} className="my-4">
+                                  <RecipeCard
+                                    recipe={resultData.output}
+                                    symptom="Generated Recipe"
+                                    onSave={() => handleSaveRecipe(resultData.output, "Generated Recipe")}
+                                    onDownloadPDF={() => handleDownloadPDF(resultData.output, "Generated Recipe")}
+                                  />
+                                </div>
+                              )
+                            }
+                          }
+                          
+                          // Handle saveRecipe tool
+                          if (toolInvocation.state === "result" && toolInvocation.toolName === "saveRecipe") {
+                            const resultData = toolInvocation.result as SaveRecipeResult
+                            if (resultData) {
+                              return (
+                                <div key={toolInvocation.toolCallId} className="my-2">
+                                  <p className={`text-sm ${resultData.success ? 'text-green-600' : 'text-red-600'}`}>
+                                    {resultData.message}
+                                  </p>
+                                </div>
+                              )
+                            }
+                          }
+                          
+                          // Handle getSavedRecipes tool
+                          if (toolInvocation.state === "result" && toolInvocation.toolName === "getSavedRecipes") {
+                            const resultData = toolInvocation.result as SavedRecipesResult
+                            if (resultData) {
+                              return (
+                                <div key={toolInvocation.toolCallId} className="my-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm text-earth-600">
+                                      Found {resultData.count} saved recipe{resultData.count !== 1 ? 's' : ''}
+                                    </p>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSavedRecipesOpen(true)}
+                                    >
+                                      <BookOpen className="h-4 w-4 mr-2" />
+                                      View All
+                                    </Button>
+                                  </div>
+                                </div>
+                              )
+                            }
+                          }
+                          
+                          // Handle downloadRecipePDF tool
+                          if (toolInvocation.state === "result" && toolInvocation.toolName === "downloadRecipePDF") {
+                            const resultData = toolInvocation.result as PDFDownloadResult
+                            if (resultData && resultData.success && resultData.data) {
+                              return (
+                                <div key={toolInvocation.toolCallId} className="my-4">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm text-green-600">{resultData.message}</p>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDownloadPDF(resultData.data as Recipe, resultData.data.symptom)}
+                                    >
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Download PDF
+                                    </Button>
+                                  </div>
+                                </div>
+                              )
+                            } else if (resultData && !resultData.success) {
+                              return (
+                                <div key={toolInvocation.toolCallId} className="my-2">
+                                  <p className="text-sm text-red-600">{resultData.message}</p>
+                                </div>
+                              )
+                            }
+                          }
+                          
                           return null
                         })}
                       </div>
@@ -305,6 +514,16 @@ export default function ChatPage() {
           </form>
         </div>
       </div>
+      
+      {/* Hidden SavedRecipesDrawer controlled by state */}
+      <SavedRecipesDrawer>
+        <div ref={el => {
+          if (el && savedRecipesOpen) {
+            el.click()
+            setSavedRecipesOpen(false)
+          }
+        }} />
+      </SavedRecipesDrawer>
     </div>
   )
 }

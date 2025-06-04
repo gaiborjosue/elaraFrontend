@@ -19,6 +19,13 @@ const PlantDetailSchema = z.object({
   benefits: z.string().optional(),
 })
 
+const RecipeSchema = z.object({
+  recipeName: z.string(),
+  ingredients: z.array(z.string()),
+  instructions: z.string(),
+})
+
+
 // Fallback mock data in case the backend is unavailable
 const mockSymptomPlantMap: Record<string, z.infer<typeof PlantDetailSchema>> = {
   "sleep issues": {
@@ -72,6 +79,29 @@ const mockSymptomPlantMap: Record<string, z.infer<typeof PlantDetailSchema>> = {
   },
 }
 
+const mockRecipes: Record<string, z.infer<typeof RecipeSchema>> = {
+  Chamomile: {
+    recipeName: "Classic Chamomile Tea",
+    ingredients: [
+      "1 tablespoon dried chamomile flowers (or 2-3 tea bags)",
+      "8 ounces (1 cup) boiling water",
+      "Honey or lemon to taste (optional)",
+    ],
+    instructions:
+      "1. Place chamomile flowers in a teapot or mug.\n2. Pour boiling water over the flowers.\n3. Cover and steep for 5-10 minutes.\n4. Strain the tea (if using loose flowers).\n5. Add honey or lemon if desired. Enjoy!",
+  },
+  Oregano: {
+    recipeName: "Oregano Infusion for Digestion",
+    ingredients: [
+      "1-2 teaspoons dried oregano leaves",
+      "8 ounces (1 cup) hot (not boiling) water",
+      "A slice of lemon (optional)",
+    ],
+    instructions:
+      "1. Place oregano leaves in a mug.\n2. Pour hot water over the leaves.\n3. Let it steep for 7-10 minutes.\n4. Strain the leaves.\n5. Add a slice of lemon if you like. Sip slowly.",
+  },
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
@@ -89,8 +119,9 @@ export async function POST(req: Request) {
     // Get the authorization token from the request headers
     const authorization = req.headers.get('authorization')
     const token = authorization?.replace('Bearer ', '')
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'
 
-    const result = await streamText({
+    const result = streamText({
       model: google("gemini-2.0-flash-exp"),
       messages,
       maxSteps: 5,
@@ -101,6 +132,12 @@ export async function POST(req: Request) {
       In your textual response, clearly present these findings. For each symptom identified by the tool, state the suggested plant and briefly explain its key benefits or uses relevant to that symptom, drawing from the information provided by the tool if available (especially the 'benefits' field).
       If the tool returns multiple plants for different symptoms, discuss each one.
       If a recipe or method of use is available in the tool's data, incorporate that into your textual description for the respective plant.
+      
+      When users want to generate a recipe for a specific plant, use the 'generateRecipe' tool.
+      When users want to save a recipe, use the 'saveRecipe' tool.
+      When users want to view their saved recipes, use the 'getSavedRecipes' tool.
+      When users want to download a recipe as PDF, use the 'downloadRecipePDF' tool.
+      
       Conclude your textual response naturally.
       Format your response using Markdown. Use headings for symptoms and plant names.
       Example of textual response structure:
@@ -127,9 +164,6 @@ export async function POST(req: Request) {
           }),
           execute: async ({ medicalConcern }) => {
             try {
-              // Get the backend API URL from environment variables
-              const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
-              
               // Make the API call to the backend using the token from the request
               const response = await fetch(`${backendUrl}/getRecommendations`, {
                 method: 'POST',
@@ -206,6 +240,161 @@ export async function POST(req: Request) {
               }
               
               return { output };
+            }
+          },
+        }),
+        generateRecipe: tool({
+          description: "Generates a recipe using a specific plant based on its properties and edible uses.",
+          parameters: z.object({
+            plantName: z.string().describe("The name of the plant"),
+            scientificName: z.string().describe("The scientific name of the plant"),
+            edibleUses: z.string().optional().describe("The edible uses of the plant"),
+          }),
+          execute: async ({ plantName, scientificName, edibleUses }) => {
+            try {
+              const response = await fetch(`${backendUrl}/getRecipe`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify({ 
+                  plantName, 
+                  scientificName, 
+                  edibleUses: edibleUses || '' 
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                return data;
+              } else {
+                console.error("Backend API error:", await response.text());
+                throw new Error("Failed to generate recipe from backend");
+              }
+            } catch (error) {
+              console.error("Error calling backend:", error);
+              
+              // Fallback to mock data
+              const recipe = mockRecipes[plantName] || {
+                recipeName: `Simple ${plantName} Infusion`,
+                ingredients: [`1 part ${plantName}`, "10 parts hot water"],
+                instructions: `Steep ${plantName} in hot water for 5-7 minutes. Strain and enjoy.`,
+              };
+
+              return { output: recipe };
+            }
+          },
+        }),
+        saveRecipe: tool({
+          description: "Saves a recipe to the user's collection",
+          parameters: z.object({
+            symptom: z.string().describe("The symptom or medical concern this recipe addresses"),
+            recipeName: z.string().describe("The name of the recipe"),
+            ingredients: z.array(z.string()).describe("List of ingredients"),
+            instructions: z.string().describe("Step-by-step instructions"),
+          }),
+          execute: async ({ symptom, recipeName, ingredients, instructions }) => {
+            try {
+              const response = await fetch(`${backendUrl}/saveRecipe`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify({ symptom, recipeName, ingredients, instructions }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                return { 
+                  success: true, 
+                  message: "Recipe saved successfully",
+                  recipeId: data.insertedId 
+                };
+              } else {
+                console.error("Backend API error:", await response.text());
+                throw new Error("Failed to save recipe");
+              }
+            } catch (error) {
+              console.error("Error saving recipe:", error);
+              return { 
+                success: false, 
+                message: "Failed to save recipe. Please try again." 
+              };
+            }
+          },
+        }),
+        getSavedRecipes: tool({
+          description: "Retrieves all saved recipes for the authenticated user",
+          parameters: z.object({}),
+          execute: async () => {
+            try {
+              const response = await fetch(`${backendUrl}/getSavedRecipes`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                return { 
+                  savedRecipes: data.savedRecipes || [],
+                  count: data.savedRecipes?.length || 0
+                };
+              } else {
+                console.error("Backend API error:", await response.text());
+                throw new Error("Failed to fetch saved recipes");
+              }
+            } catch (error) {
+              console.error("Error fetching saved recipes:", error);
+              return { 
+                savedRecipes: [],
+                count: 0,
+                error: "Failed to load saved recipes" 
+              };
+            }
+          },
+        }),
+        downloadRecipePDF: tool({
+          description: "Downloads a recipe as a PDF file",
+          parameters: z.object({
+            symptom: z.string().describe("The symptom or medical concern this recipe addresses"),
+            recipeName: z.string().describe("The name of the recipe"),
+            ingredients: z.array(z.string()).describe("List of ingredients"),
+            instructions: z.string().describe("Step-by-step instructions"),
+          }),
+          execute: async ({ symptom, recipeName, ingredients, instructions }) => {
+            try {
+              const response = await fetch(`${backendUrl}/downloadRecipePDF`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify({ symptom, recipeName, ingredients, instructions }),
+              });
+
+              if (response.ok) {
+                // For PDF download, we'll return a success message
+                // The actual download would be handled by the frontend
+                return { 
+                  success: true, 
+                  message: "PDF download initiated",
+                  downloadUrl: `${backendUrl}/downloadRecipePDF`,
+                  data: { symptom, recipeName, ingredients, instructions }
+                };
+              } else {
+                console.error("Backend API error:", await response.text());
+                throw new Error("Failed to generate PDF");
+              }
+            } catch (error) {
+              console.error("Error downloading PDF:", error);
+              return { 
+                success: false, 
+                message: "Failed to generate PDF. Please try again." 
+              };
             }
           },
         }),
