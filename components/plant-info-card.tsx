@@ -2,10 +2,12 @@
 
 import { useState } from "react" // Added useState
 import { Badge } from "@/components/ui/badge"
-import { Leaf, Star, Utensils, ExternalLink, Thermometer, Loader2 } from "lucide-react" // Added Loader2
+import { Leaf, Star, Utensils, ExternalLink, Thermometer, Loader2, Download, Save, Check } from "lucide-react" // Added Loader2, Download, Save, Check
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useAuth } from "@/context/auth-context"
+import { useToast } from "@/components/ui/use-toast"
 
 interface PlantInfoBase {
   plantName: string
@@ -51,10 +53,16 @@ const RatingStars = ({ rating }: { rating?: number }) => {
 }
 
 export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
+  const { token } = useAuth()
+  const { toast } = useToast()
   const [detailedRecipe, setDetailedRecipe] = useState<RecipeOutput | null>(null)
   const [isRecipeLoading, setIsRecipeLoading] = useState(false)
   const [recipeError, setRecipeError] = useState<string | null>(null)
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
+  const [showFullEdibleUses, setShowFullEdibleUses] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   const fetchRecipeDetails = async () => {
     if (detailedRecipe || isRecipeLoading) return // Already fetched or currently fetching
@@ -66,7 +74,10 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
     try {
       const response = await fetch("/api/recipe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
         body: JSON.stringify({
           plantName: plant.plantName,
           scientificName: plant.scientificName,
@@ -92,7 +103,109 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
     if (open && !hasAttemptedFetch && !detailedRecipe) {
       fetchRecipeDetails()
     }
+    if (!open) {
+      setIsSaved(false)
+    }
   }
+
+  const handleSaveRecipe = async () => {
+    if (!detailedRecipe || !token) return
+    
+    setIsSaving(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'}/saveRecipe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          symptom,
+          recipeName: detailedRecipe.recipeName,
+          ingredients: detailedRecipe.ingredients,
+          instructions: detailedRecipe.instructions,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save recipe')
+      }
+
+      toast({
+        title: "Recipe saved!",
+        description: "Recipe has been saved to your collection.",
+        duration: 3000,
+      })
+      setIsSaved(true)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save recipe. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    if (!detailedRecipe || !token) return
+    
+    setIsDownloading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'}/downloadRecipePDF`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          symptom,
+          recipeName: detailedRecipe.recipeName,
+          ingredients: detailedRecipe.ingredients,
+          instructions: detailedRecipe.instructions,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to download PDF')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${detailedRecipe.recipeName.replace(/\s+/g, '_')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      toast({
+        title: "PDF downloaded!",
+        description: "Recipe PDF has been downloaded successfully.",
+        duration: 3000,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download PDF. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // Helper function to truncate text to approximately 3 lines
+  const getTruncatedText = (text: string, maxLength: number = 120) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength).trim() + '...'
+  }
+
+  const shouldShowReadMore = plant.edibleUses && plant.edibleUses.length > 120
 
   return (
     <div className="mt-4 relative w-full max-w-xs shrink-0 transform scale-95">
@@ -103,7 +216,7 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
           {plant.plantImageURL && (
             <div className="relative h-40 w-full">
               <Image
-                src={plant.plantImageURL || "/placeholder.svg"}
+                src={'https://pfaf.org/' + plant.plantImageURL.substring(3) || "/placeholder.svg"}
                 alt={plant.plantName}
                 layout="fill"
                 objectFit="cover"
@@ -148,7 +261,22 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
             {plant.edibleUses && (
               <div>
                 <p className="text-sm font-medium text-earth-800">Edible Uses:</p>
-                <p className="text-xs text-earth-700/90">{plant.edibleUses}</p>
+                <div className="text-xs text-earth-700/90">
+                  <p>
+                    {showFullEdibleUses || !shouldShowReadMore 
+                      ? plant.edibleUses 
+                      : getTruncatedText(plant.edibleUses)
+                    }
+                  </p>
+                  {shouldShowReadMore && (
+                    <button 
+                      onClick={() => setShowFullEdibleUses(!showFullEdibleUses)}
+                      className="text-earth-600 hover:text-earth-800 font-medium mt-1 underline"
+                    >
+                      {showFullEdibleUses ? 'Read Less' : 'Read More...'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             {/* The button is always present, but functionality changes based on recipe availability */}
@@ -195,6 +323,35 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
                         <div>
                           <h4 className="font-semibold text-earth-700 mb-1">Instructions:</h4>
                           <p className="text-sm text-earth-600 whitespace-pre-line">{detailedRecipe.instructions}</p>
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                          <Button
+                            onClick={handleSaveRecipe}
+                            disabled={isSaving || isSaved}
+                            className={`flex-1 ${isSaved ? 'bg-green-600 hover:bg-green-600' : 'bg-earth-600 hover:bg-earth-700'}`}
+                          >
+                            {isSaving ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : isSaved ? (
+                              <Check className="h-4 w-4 mr-2" />
+                            ) : (
+                              <Save className="h-4 w-4 mr-2" />
+                            )}
+                            {isSaving ? "Saving..." : isSaved ? "Saved Successfully" : "Save Recipe"}
+                          </Button>
+                          <Button
+                            onClick={handleDownloadPDF}
+                            disabled={isDownloading}
+                            variant="outline"
+                            className="flex-1 border-earth-600 text-earth-600 hover:bg-earth-50"
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                            )}
+                            {isDownloading ? "Downloading..." : "Download PDF"}
+                          </Button>
                         </div>
                       </div>
                     )}

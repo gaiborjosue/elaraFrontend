@@ -3,6 +3,41 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { SharedHeader } from "@/components/shared-header"
+import { useAuth } from "@/context/auth-context"
+import { LoginDialog } from "@/components/login-dialog"
+
+function DynamicCenterButton() {
+  const { isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <Button 
+        disabled 
+        className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl"
+      >
+        Loading...
+      </Button>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <LoginDialog>
+        <Button className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl transition-transform hover:scale-110">
+          Log In
+        </Button>
+      </LoginDialog>
+    )
+  }
+
+  return (
+    <Link href="/chat">
+      <Button className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl transition-transform hover:scale-110">
+        Start Chat
+      </Button>
+    </Link>
+  )
+}
 
 export default function LandingPage() {
   return (
@@ -29,13 +64,9 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* Start Chat Button + Description */}
+        {/* Dynamic Button */}
         <div className="z-10 flex flex-col items-center">
-          <Link href="/chat">
-            <Button className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl transition-transform hover:scale-110">
-              Start Chat
-            </Button>
-          </Link>
+          <DynamicCenterButton />
         </div>
 
         {/* Human hand */}

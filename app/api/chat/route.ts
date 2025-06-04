@@ -15,10 +15,11 @@ const PlantDetailSchema = z.object({
   partsUsed: z.string().optional(),
   cultivation: z.string().optional(),
   methodOfUse: z.string().optional(),
-  recipe: z.string().optional(), // Keep for mock, though card doesn't display it directly
-  benefits: z.string().optional(), // Keep for mock, AI might use it for text
+  recipe: z.string().optional(),
+  benefits: z.string().optional(),
 })
 
+// Fallback mock data in case the backend is unavailable
 const mockSymptomPlantMap: Record<string, z.infer<typeof PlantDetailSchema>> = {
   "sleep issues": {
     plantName: "Chamomile",
@@ -85,12 +86,15 @@ export async function POST(req: Request) {
       )
     }
 
+    // Get the authorization token from the request headers
+    const authorization = req.headers.get('authorization')
+    const token = authorization?.replace('Bearer ', '')
+
     const result = await streamText({
       model: google("gemini-2.0-flash-exp"),
       messages,
-      // Increased maxSteps slightly, as tool calls + text generation can take multiple steps
       maxSteps: 5,
-      system: `You are Dr. Elena Ramirez, an expert in Mediterranean herbal remedies.
+      system: `You are Elara, an expert in plant herbal remedies.
       When a user describes a medical concern, use the 'findHerbalRemedies' tool.
       The tool will return plants for identified symptoms.
       After the tool provides results, YOU MUST generate a textual response.
@@ -110,7 +114,7 @@ export async function POST(req: Request) {
       ## For your anxiety:
       ### Lavender
       Lavender can help calm the nervous system and reduce stress.
-      A simple Lavender preparation is: Mix 1 teaspoon of dried lavender flowers..."
+      A simple Lavender preparation is: Mix 1 teaspoon of dried lavender flowers with 1 teaspoon of chamomile..."
 
       Ensure your final output is a textual message to the user summarizing these points.
       `,
@@ -122,40 +126,87 @@ export async function POST(req: Request) {
             medicalConcern: z.string().describe("The user's full medical concern string."),
           }),
           execute: async ({ medicalConcern }) => {
-            const output: Record<string, z.infer<typeof PlantDetailSchema>> = {}
-            const concern = medicalConcern.toLowerCase()
-
-            if (concern.includes("sleep") || concern.includes("insomnia")) {
-              output["sleep issues"] = mockSymptomPlantMap["sleep issues"]
-            }
-            if (concern.includes("stomach") || concern.includes("digest")) {
-              output["digestive problems"] = mockSymptomPlantMap["digestive problems"]
-            }
-            if (concern.includes("anxiety") || concern.includes("stress") || concern.includes("nervous")) {
-              output["anxiety"] = mockSymptomPlantMap["anxiety"]
-            }
-            if (concern.includes("headache") || concern.includes("migraine")) {
-              output["headache"] = mockSymptomPlantMap["headache"]
-            }
-
-            if (Object.keys(output).length === 0 && concern.length > 0) {
-              if (concern.includes("pain")) {
-                output["general discomfort/pain"] = mockSymptomPlantMap["headache"]
+            try {
+              // Get the backend API URL from environment variables
+              const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+              
+              // Make the API call to the backend using the token from the request
+              const response = await fetch(`${backendUrl}/getRecommendations`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` }),
+                },
+                body: JSON.stringify({ medicalConcern }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                
+                // Process the data to ensure image URLs are complete
+                const output = data.output;
+                for (const key in output) {
+                  if (output[key].plantImageURL && Array.isArray(output[key].plantImageURL)) {
+                    // Convert array of URLs to single URL (if needed)
+                    output[key].plantImageURL = output[key].plantImageURL[0];
+                  }
+                  
+                  // Ensure placeholder images have a query
+                  if (
+                    output[key].plantImageURL && 
+                    output[key].plantImageURL.startsWith("/placeholder.svg") &&
+                    !output[key].plantImageURL.includes("query=")
+                  ) {
+                    output[key].plantImageURL += `&query=${encodeURIComponent(output[key].plantName)}`;
+                  }
+                }
+                
+                return { output };
               } else {
-                output["general wellness"] = mockSymptomPlantMap["sleep issues"]
+                console.error("Backend API error:", await response.text());
+                throw new Error("Failed to get recommendations from backend");
               }
-            }
-            // Ensure placeholder images have a query
-            for (const key in output) {
-              if (
-                output[key].plantImageURL &&
-                output[key].plantImageURL.startsWith("/placeholder.svg") &&
-                !output[key].plantImageURL.includes("query=")
-              ) {
-                output[key].plantImageURL += `&query=${encodeURIComponent(output[key].plantName)}`
+            } catch (error) {
+              console.error("Error calling backend:", error);
+              
+              // Fallback to mock data if backend call fails
+              const output: Record<string, z.infer<typeof PlantDetailSchema>> = {};
+              const concern = medicalConcern.toLowerCase();
+
+              if (concern.includes("sleep") || concern.includes("insomnia")) {
+                output["sleep issues"] = mockSymptomPlantMap["sleep issues"];
               }
+              if (concern.includes("stomach") || concern.includes("digest")) {
+                output["digestive problems"] = mockSymptomPlantMap["digestive problems"];
+              }
+              if (concern.includes("anxiety") || concern.includes("stress") || concern.includes("nervous")) {
+                output["anxiety"] = mockSymptomPlantMap["anxiety"];
+              }
+              if (concern.includes("headache") || concern.includes("migraine")) {
+                output["headache"] = mockSymptomPlantMap["headache"];
+              }
+
+              if (Object.keys(output).length === 0 && concern.length > 0) {
+                if (concern.includes("pain")) {
+                  output["general discomfort/pain"] = mockSymptomPlantMap["headache"];
+                } else {
+                  output["general wellness"] = mockSymptomPlantMap["sleep issues"];
+                }
+              }
+              
+              // Ensure placeholder images have a query
+              for (const key in output) {
+                if (
+                  output[key].plantImageURL &&
+                  output[key].plantImageURL.startsWith("/placeholder.svg") &&
+                  !output[key].plantImageURL.includes("query=")
+                ) {
+                  output[key].plantImageURL += `&query=${encodeURIComponent(output[key].plantName)}`;
+                }
+              }
+              
+              return { output };
             }
-            return { output }
           },
         }),
       },

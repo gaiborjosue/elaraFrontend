@@ -13,6 +13,7 @@ interface RecipeOutput {
   instructions: string
 }
 
+// Fallback mock recipes in case backend is unavailable
 const mockRecipes: Record<string, RecipeOutput> = {
   Chamomile: {
     recipeName: "Classic Chamomile Tea",
@@ -67,18 +68,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid request body", details: validation.error.format() }, { status: 400 })
     }
 
-    const { plantName } = validation.data
+    const { plantName, scientificName, edibleUses } = validation.data
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Get the authorization token from the request headers
+    const authorization = req.headers.get('authorization')
+    const token = authorization?.replace('Bearer ', '')
 
-    const recipe = mockRecipes[plantName] || {
-      recipeName: `Simple ${plantName} Infusion`,
-      ingredients: [`1 part ${plantName}`, "10 parts hot water"],
-      instructions: `Steep ${plantName} in hot water for 5-7 minutes. Strain and enjoy. (This is a generic recipe, specific details for ${plantName} may vary.)`,
+    try {
+      // Get backend URL from environment variables
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+      
+      // Call the backend API
+      const response = await fetch(`${backendUrl}/getRecipe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          plantName,
+          scientificName,
+          edibleUses: edibleUses || '',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return NextResponse.json(data);
+      } else {
+        console.error("Backend API error:", await response.text());
+        throw new Error("Failed to fetch recipe from backend");
+      }
+    } catch (error) {
+      console.error("Error calling backend:", error);
+      
+      // Fallback to mock data if backend call fails
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const recipe = mockRecipes[plantName] || {
+        recipeName: `Simple ${plantName} Infusion`,
+        ingredients: [`1 part ${plantName}`, "10 parts hot water"],
+        instructions: `Steep ${plantName} in hot water for 5-7 minutes. Strain and enjoy. (This is a generic recipe, specific details for ${plantName} may vary.)`,
+      }
+
+      return NextResponse.json({ output: recipe })
     }
-
-    return NextResponse.json({ output: recipe })
   } catch (error) {
     console.error("Error in recipe API:", error)
     return NextResponse.json({ error: "Failed to fetch recipe" }, { status: 500 })

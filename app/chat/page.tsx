@@ -12,6 +12,8 @@ import { ChevronDown, AlertCircle, SunIcon as Sunflower, User } from "lucide-rea
 import ReactMarkdown from "react-markdown"
 // Removed cn import as it's no longer used
 import { SharedHeader } from "@/components/shared-header"
+import { useAuth } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
 
 interface PlantDetail {
   plantName: string
@@ -33,11 +35,23 @@ interface ToolResultOutput {
 }
 
 export default function ChatPage() {
+  const { isAuthenticated, token, loading } = useAuth()
+  const router = useRouter()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
 
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/')
+    }
+  }, [isAuthenticated, loading, router])
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: "/api/chat",
+    headers: {
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
     onResponse: () => setErrorMessage(null),
     onError: (err) => {
       console.error("Chat error:", err)
@@ -126,6 +140,23 @@ export default function ChatPage() {
       container.removeEventListener("scroll", scrollEventHandler)
     }
   }, [messages, isUserScrolling])
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-earth-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render the chat if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
