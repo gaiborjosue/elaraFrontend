@@ -291,7 +291,7 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
                     Get Recipe
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-white/80 backdrop-blur-lg text-earth-800 border-earth-200 w-[90vw] sm:w-[400px] overflow-y-auto">
+                <SheetContent className="bg-white/80 backdrop-blur-lg text-earth-800 border-earth-200 w-[90vw] sm:w-[540px] md:w-[600px] overflow-y-auto">
                   <SheetHeader>
                     <SheetTitle className="text-earth-700 text-2xl">
                       {detailedRecipe?.recipeName || plant.plantName}
@@ -337,7 +337,7 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
                             ) : (
                               <Save className="h-4 w-4 mr-2" />
                             )}
-                            {isSaving ? "Saving..." : isSaved ? "Saved Successfully" : "Save Recipe"}
+                            {isSaving ? "Saving..." : isSaved ? "Saved :)" : "Save Recipe"}
                           </Button>
                           <Button
                             onClick={handleDownloadPDF}

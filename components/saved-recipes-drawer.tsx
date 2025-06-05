@@ -240,9 +240,9 @@ export function SavedRecipesDrawer({ children }: SavedRecipesDrawerProps) {
                   <Card key={recipe.id} className="w-[300px] shrink-0 flex flex-col">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg line-clamp-1 pr-2">{recipe.recipe.recipeName}</CardTitle>
-                          <CardDescription className="mt-1">For: {recipe.symptom}</CardDescription>
+                        <div className="flex-1 min-w-0 pr-2">
+                          <CardTitle className="text-lg line-clamp-1">{recipe.recipe.recipeName}</CardTitle>
+                          <CardDescription className="mt-1 line-clamp-2">For: {recipe.symptom}</CardDescription>
                         </div>
                         <Button
                           variant="ghost"
@@ -294,7 +294,7 @@ export function SavedRecipesDrawer({ children }: SavedRecipesDrawerProps) {
                             View Recipe
                           </Button>
                         </SheetTrigger>
-                        <SheetContent className="w-[90vw] sm:w-[400px]">
+                        <SheetContent className="w-[90vw] sm:w-[540px] md:w-[600px]">
                           <SheetHeader>
                             <SheetTitle>{recipe.recipe.recipeName}</SheetTitle>
                           </SheetHeader>
