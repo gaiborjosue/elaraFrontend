@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Menu, LogOut, BookOpen } from "lucide-react"
 import { LoginDialog } from "@/components/login-dialog"
 import { useAuth } from "@/context/auth-context"
@@ -43,10 +42,10 @@ export function SharedHeader({ pageType }: SharedHeaderProps) {
       {pageType === "landing" && isAuthenticated && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Avatar className="cursor-pointer">
-              <AvatarImage src="/placeholder.svg?height=40&width=40" />
-              <AvatarFallback>{user?.username?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Open menu</span>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <SavedRecipesDrawer>
@@ -70,10 +69,10 @@ export function SharedHeader({ pageType }: SharedHeaderProps) {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Avatar className="cursor-pointer">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-              </Avatar>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open menu</span>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <SavedRecipesDrawer>
