@@ -8,9 +8,13 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "NaturalMed AI - Mediterranean Herbal Remedies",
-  description: "Discover natural wellness through Mediterranean herbal remedies with AI guidance",
-    generator: 'v0.dev'
+  title: "Elara AI - Discover plant medical uses",
+  description: "Discover natural wellness through plant information with AI guidance",
+  icons: {
+    icon: '/elaraIcon.png',
+    shortcut: '/elaraIcon.png',
+    apple: '/elaraIcon.png',
+  }
 }
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Menu, LogOut, BookOpen } from "lucide-react"
 import { LoginDialog } from "@/components/login-dialog"
@@ -33,11 +34,19 @@ export function SharedHeader({ pageType }: SharedHeaderProps) {
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 bg-white shadow-sm">
-      <div className="flex items-center space-x-2">
-        <div className="w-6 h-6 bg-earth-600 rounded"></div>
+      <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+        <div className="relative w-6 h-6 overflow-hidden rounded-full">
+          <Image
+            src="/elaraIcon.png"
+            alt="Elara Logo"
+            width={24}
+            height={24}
+            className="object-cover"
+          />
+        </div>
         <span className="text-xl font-semibold text-gray-900">Elara</span>
         <span className="ml-2 text-xs text-gray-500 font-normal">(Informational purposes only)</span>
-      </div>
+      </Link>
       
       {pageType === "landing" && isAuthenticated && (
         <DropdownMenu>

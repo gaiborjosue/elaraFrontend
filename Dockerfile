@@ -3,76 +3,54 @@
 #############################################
 FROM node:20-alpine AS builder
 
+# ARG for build-time public env vars. This will be populated by --set-build-env-vars
 ARG NEXT_PUBLIC_BACKEND_API_URL
-ARG GOOGLE_GENERATIVE_AI_API_KEY
 
 WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# TURN OFF telemetry
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Copy only the lockfiles first (caches layers)
 COPY package.json pnpm-lock.yaml* ./
-
-# Install pnpm and dependencies
 RUN npm install -g pnpm \
  && pnpm install --frozen-lockfile
 
-# Copy entire source
 COPY . .
 
-
-
+# Set ENV from ARG for the build process. This makes it available to `next build`.
+# Next.js will inline this into client bundles because of the NEXT_PUBLIC_ prefix.
 ENV NEXT_PUBLIC_BACKEND_API_URL=${NEXT_PUBLIC_BACKEND_API_URL}
-ENV GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
 
-# Log backend api url variable
-RUN echo "NEXT_PUBLIC_BACKEND_API: ${NEXT_PUBLIC_BACKEND_API_URL}"
-
-# Actually build Next
+RUN echo "BUILDER STAGE - NEXT_PUBLIC_BACKEND_API_URL: ${NEXT_PUBLIC_BACKEND_API_URL}"
 RUN pnpm build
-
 
 #############################################
 # Stage 2: Production image
 #############################################
 FROM node:20-alpine AS runner
-
-ARG NEXT_PUBLIC_BACKEND_API_URL
-ARG GOOGLE_GENERATIVE_AI_API_KEY
-
 WORKDIR /app
 
-# Set NODE_ENV
-ENV NODE_ENV=production
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Disable telemetry
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Install pnpm
 RUN npm install -g pnpm
-
-# Copy package files and install production dependencies
 COPY package.json pnpm-lock.yaml* ./
+# Only install production dependencies
 RUN pnpm install --prod --frozen-lockfile
 
-# Copy the built app from builder
+# Copy built assets from the builder stage
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./
-COPY --from=builder /app/next-env.d.ts ./
+# next-env.d.ts is a dev file, usually not needed in production runner
 
-# Runtime environment variables
-ENV NEXT_PUBLIC_BACKEND_API_URL=${NEXT_PUBLIC_BACKEND_API_URL}
-ENV GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+# Environment variables for runtime (like GOOGLE_GENERATIVE_AI_API_KEY
+# and RUNTIME_NEXT_PUBLIC_BACKEND_API_URL) will be injected by Cloud Run's --set-secrets.
+# You don't strictly need ARG/ENV declarations for them here in the runner stage
+# if Cloud Run is providing them, but they don't hurt.
 
-# Use a non-root user
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 USER nextjs
 
-# Cloud Run listens on $PORT (automatically set to 8080)
-ENV PORT=8080
+ENV PORT 8080
 EXPOSE 8080
 
-# Start Next.js using next start
 CMD ["pnpm", "start", "--port", "8080"]
