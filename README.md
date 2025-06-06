@@ -6,7 +6,10 @@ Developed by [@gaiborjosue](https://edwardgaibor.me) and [@dariadobrolinski](htt
 
 To view the backend for this project:
 
-[![View Backend (1)](https://github.com/user-attachments/assets/4357cfd3-1cf8-4749-9ced-4d34ccc8fb57)](https://github.com/dariadobrolinski/elaraBackend)
+<a href="https://github.com/dariadobrolinski/elaraBackend" target="_blank">
+  <img src="https://github.com/user-attachments/assets/4357cfd3-1cf8-4749-9ced-4d34ccc8fb57" alt="View Backend (1)" />
+</a>
+
 
 ## Description
 
