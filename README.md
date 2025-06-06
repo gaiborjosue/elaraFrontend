@@ -2,7 +2,7 @@
 
 ![ElaraBannerFrontend](https://github.com/user-attachments/assets/e8f5825c-594a-4998-aebf-525f57a83ae4)
 
-Developed by @gaiborjosue and @dariadobrolinski. 
+Developed by [@gaiborjosue](https://edwardgaibor.me) and [@dariadobrolinski](https://dariadobrolinski.me).
 
 To view the backend for this project:
 
