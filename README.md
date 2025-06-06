@@ -2,6 +2,12 @@
 
 ![ElaraBannerFrontend](https://github.com/user-attachments/assets/e8f5825c-594a-4998-aebf-525f57a83ae4)
 
+Developed by @gaiborjosue and @dariadobrolinski. 
+
+To view the backend for this project:
+
+[![View Backend (1)](https://github.com/user-attachments/assets/4357cfd3-1cf8-4749-9ced-4d34ccc8fb57)](https://github.com/dariadobrolinski/elaraBackend)
+
 ## Description
 
 Elara is a Next.js frontend for an AI-powered chat that recommends herbal remedies and recipes. Built with TypeScript and deployed on Google Cloud Run.
@@ -28,6 +34,11 @@ Shows the frontend service, AI integration, and backend API interactions.
 ![chatdiagram](https://github.com/user-attachments/assets/990ab1be-8b2c-45c5-b4ed-9f604ce314b8)
 
 Zooms into the chat flow: user input → /api/chat → Gemini AI with tools → streamed response & dynamic UI components.
+
+## Screenshots
+
+![screenshotsElara](https://github.com/user-attachments/assets/e2627e39-922b-4a2f-8c41-d0e575e83928)
+
 
 ## Setup & Run
 
