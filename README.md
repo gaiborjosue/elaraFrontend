@@ -70,7 +70,9 @@ Zooms into the chat flow: user input → /api/chat → Gemini AI with tools → 
 5. **Deploy to Cloud Run**
 
    ```bash
-   gcloud run deploy elara-frontend --source . --region <region> --service-account <service-account>
+   gcloud builds submit --config cloudbuild.yaml --project="${GCP_PROJECT_ID}" --substitutions=_NEXT_PUBLIC_BACKEND_API_URL="https://elarabackend-114195159699.us-central1.run.app/"
+   
+   gcloud run deploy elarafrontend --image "${IMAGE_PATH}" --region "${REGION}" --service-account "${SERVICE_ACCOUNT_EMAIL}" --allow-unauthenticated --project "${GCP_PROJECT_ID}" --set-  secrets="GOOGLE_GENERATIVE_AI_API_KEY=google-api-key:latest,RUNTIME_NEXT_PUBLIC_BACKEND_API_URL=api-url:latest"
    ```
 
 ## Folder Structure
