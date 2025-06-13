@@ -25,83 +25,6 @@ const RecipeSchema = z.object({
   instructions: z.string(),
 })
 
-
-// Fallback mock data in case the backend is unavailable
-const mockSymptomPlantMap: Record<string, z.infer<typeof PlantDetailSchema>> = {
-  "sleep issues": {
-    plantName: "Chamomile",
-    scientificName: "Matricaria chamomilla",
-    medicalRating: 4,
-    edibleRating: 3,
-    edibleUses: "Flowers used in teas.",
-    plantImageURL: "/placeholder.svg?height=200&width=300",
-    plantURL: "https://en.wikipedia.org/wiki/Matricaria_chamomilla",
-    partsUsed: "Flowers",
-    recipe:
-      "Chamomile Tea: Add 1 tablespoon of dried chamomile flowers to a cup of hot water. Steep for 5-10 minutes...",
-    benefits: "Promotes relaxation, reduces anxiety, improves sleep quality.",
-  },
-  "digestive problems": {
-    plantName: "Oregano",
-    scientificName: "Origanum vulgare",
-    medicalRating: 3,
-    edibleRating: 5,
-    edibleUses: "Leaves used as a culinary herb.",
-    plantImageURL: "/placeholder.svg?height=200&width=300",
-    plantURL: "https://en.wikipedia.org/wiki/Oregano",
-    partsUsed: "Leaves and flowering tops",
-    recipe: "Oregano Tea for Digestion: Steep 1-2 teaspoons of dried oregano leaves in a cup of hot water...",
-    benefits: "Antimicrobial properties, soothes digestive discomfort.",
-  },
-  anxiety: {
-    plantName: "Lavender",
-    scientificName: "Lavandula angustifolia",
-    medicalRating: 4,
-    edibleRating: 2,
-    edibleUses: "Flowers can be used in culinary preparations, but primarily for aroma.",
-    plantImageURL: "/placeholder.svg?height=200&width=300",
-    plantURL: "https://en.wikipedia.org/wiki/Lavandula_angustifolia",
-    partsUsed: "Flowers and leaves",
-    recipe: "Lavender Relaxation Tea: Mix 1 teaspoon of dried lavender flowers with 1 teaspoon of chamomile...",
-    benefits: "Calms the nervous system, reduces anxiety and stress.",
-  },
-  headache: {
-    plantName: "Rosemary",
-    scientificName: "Salvia rosmarinus",
-    medicalRating: 3,
-    edibleRating: 5,
-    edibleUses: "Leaves used as a culinary herb.",
-    plantImageURL: "/placeholder.svg?height=200&width=300",
-    plantURL: "https://en.wikipedia.org/wiki/Rosemary",
-    partsUsed: "Leaves",
-    recipe: "Rosemary tea: Steep fresh rosemary sprigs in hot water. Believed to help with circulation.",
-    benefits: "May improve memory and concentration, anti-inflammatory.",
-  },
-}
-
-const mockRecipes: Record<string, z.infer<typeof RecipeSchema>> = {
-  Chamomile: {
-    recipeName: "Classic Chamomile Tea",
-    ingredients: [
-      "1 tablespoon dried chamomile flowers (or 2-3 tea bags)",
-      "8 ounces (1 cup) boiling water",
-      "Honey or lemon to taste (optional)",
-    ],
-    instructions:
-      "1. Place chamomile flowers in a teapot or mug.\n2. Pour boiling water over the flowers.\n3. Cover and steep for 5-10 minutes.\n4. Strain the tea (if using loose flowers).\n5. Add honey or lemon if desired. Enjoy!",
-  },
-  Oregano: {
-    recipeName: "Oregano Infusion for Digestion",
-    ingredients: [
-      "1-2 teaspoons dried oregano leaves",
-      "8 ounces (1 cup) hot (not boiling) water",
-      "A slice of lemon (optional)",
-    ],
-    instructions:
-      "1. Place oregano leaves in a mug.\n2. Pour hot water over the leaves.\n3. Let it steep for 7-10 minutes.\n4. Strain the leaves.\n5. Add a slice of lemon if you like. Sip slowly.",
-  },
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
@@ -122,7 +45,7 @@ export async function POST(req: Request) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'
 
     const result = streamText({
-      model: google("gemini-2.0-flash-exp"),
+      model: google("gemini-2.5-flash-preview-05-20"),
       messages,
       maxSteps: 5,
       system: `You are Elara, an expert in plant herbal remedies.
@@ -154,6 +77,8 @@ export async function POST(req: Request) {
       A simple Lavender preparation is: Mix 1 teaspoon of dried lavender flowers with 1 teaspoon of chamomile..."
 
       Ensure your final output is a textual message to the user summarizing these points.
+
+      If users want to continue the conversation, they can ask follow-up questions or request more information about specific plants or recipes, feel free to provide information based on your knowledge and only if applicable, use the tools to fetch specific data.
       `,
       tools: {
         findHerbalRemedies: tool({
@@ -164,7 +89,6 @@ export async function POST(req: Request) {
           }),
           execute: async ({ medicalConcern }) => {
             try {
-              // Make the API call to the backend using the token from the request
               const response = await fetch(`${backendUrl}/getRecommendations`, {
                 method: 'POST',
                 headers: {
@@ -184,62 +108,15 @@ export async function POST(req: Request) {
                     // Convert array of URLs to single URL (if needed)
                     output[key].plantImageURL = output[key].plantImageURL[0];
                   }
-                  
-                  // Ensure placeholder images have a query
-                  if (
-                    output[key].plantImageURL && 
-                    output[key].plantImageURL.startsWith("/placeholder.svg") &&
-                    !output[key].plantImageURL.includes("query=")
-                  ) {
-                    output[key].plantImageURL += `&query=${encodeURIComponent(output[key].plantName)}`;
-                  }
                 }
                 
                 return { output };
               } else {
-                console.error("Backend API error:", await response.text());
                 throw new Error("Failed to get recommendations from backend");
               }
             } catch (error) {
               console.error("Error calling backend:", error);
-              
-              // Fallback to mock data if backend call fails
-              const output: Record<string, z.infer<typeof PlantDetailSchema>> = {};
-              const concern = medicalConcern.toLowerCase();
-
-              if (concern.includes("sleep") || concern.includes("insomnia")) {
-                output["sleep issues"] = mockSymptomPlantMap["sleep issues"];
-              }
-              if (concern.includes("stomach") || concern.includes("digest")) {
-                output["digestive problems"] = mockSymptomPlantMap["digestive problems"];
-              }
-              if (concern.includes("anxiety") || concern.includes("stress") || concern.includes("nervous")) {
-                output["anxiety"] = mockSymptomPlantMap["anxiety"];
-              }
-              if (concern.includes("headache") || concern.includes("migraine")) {
-                output["headache"] = mockSymptomPlantMap["headache"];
-              }
-
-              if (Object.keys(output).length === 0 && concern.length > 0) {
-                if (concern.includes("pain")) {
-                  output["general discomfort/pain"] = mockSymptomPlantMap["headache"];
-                } else {
-                  output["general wellness"] = mockSymptomPlantMap["sleep issues"];
-                }
-              }
-              
-              // Ensure placeholder images have a query
-              for (const key in output) {
-                if (
-                  output[key].plantImageURL &&
-                  output[key].plantImageURL.startsWith("/placeholder.svg") &&
-                  !output[key].plantImageURL.includes("query=")
-                ) {
-                  output[key].plantImageURL += `&query=${encodeURIComponent(output[key].plantName)}`;
-                }
-              }
-              
-              return { output };
+              throw new Error("Unable to fetch herbal remedy recommendations. Please try again later.");
             }
           },
         }),
@@ -269,20 +146,11 @@ export async function POST(req: Request) {
                 const data = await response.json();
                 return data;
               } else {
-                console.error("Backend API error:", await response.text());
                 throw new Error("Failed to generate recipe from backend");
               }
             } catch (error) {
               console.error("Error calling backend:", error);
-              
-              // Fallback to mock data
-              const recipe = mockRecipes[plantName] || {
-                recipeName: `Simple ${plantName} Infusion`,
-                ingredients: [`1 part ${plantName}`, "10 parts hot water"],
-                instructions: `Steep ${plantName} in hot water for 5-7 minutes. Strain and enjoy.`,
-              };
-
-              return { output: recipe };
+              throw new Error("Unable to generate recipe. Please try again later.");
             }
           },
         }),
@@ -313,7 +181,6 @@ export async function POST(req: Request) {
                   recipeId: data.insertedId 
                 };
               } else {
-                console.error("Backend API error:", await response.text());
                 throw new Error("Failed to save recipe");
               }
             } catch (error) {
@@ -344,7 +211,6 @@ export async function POST(req: Request) {
                   count: data.savedRecipes?.length || 0
                 };
               } else {
-                console.error("Backend API error:", await response.text());
                 throw new Error("Failed to fetch saved recipes");
               }
             } catch (error) {
@@ -377,8 +243,6 @@ export async function POST(req: Request) {
               });
 
               if (response.ok) {
-                // For PDF download, we'll return a success message
-                // The actual download would be handled by the frontend
                 return { 
                   success: true, 
                   message: "PDF download initiated",
@@ -386,7 +250,6 @@ export async function POST(req: Request) {
                   data: { symptom, recipeName, ingredients, instructions }
                 };
               } else {
-                console.error("Backend API error:", await response.text());
                 throw new Error("Failed to generate PDF");
               }
             } catch (error) {
