@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { SharedHeader } from "@/components/shared-header"
 import { useAuth } from "@/context/auth-context"
 import { LoginDialog } from "@/components/login-dialog"
+import { SignupDialog } from "@/components/signup-dialog"
 
 function DynamicCenterButton() {
   const { isAuthenticated, loading } = useAuth()
@@ -22,11 +23,18 @@ function DynamicCenterButton() {
 
   if (!isAuthenticated) {
     return (
-      <LoginDialog>
-        <Button className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl transition-transform hover:scale-110">
-          Log In
-        </Button>
-      </LoginDialog>
+      <div className="flex flex-col items-center space-y-4">
+        <LoginDialog>
+          <Button className="bg-earth-600 hover:bg-earth-700 text-white px-12 py-6 text-2xl rounded-full shadow-xl transition-transform hover:scale-110">
+            Log In
+          </Button>
+        </LoginDialog>
+        <SignupDialog>
+          <Button variant="outline" className="border-earth-600 text-earth-600 hover:bg-earth-50 px-8 py-3 text-lg rounded-full transition-transform hover:scale-110">
+            Sign Up
+          </Button>
+        </SignupDialog>
+      </div>
     )
   }
 

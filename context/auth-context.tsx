@@ -10,7 +10,8 @@ interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
   token: string | null
-  login: (username: string, password: string) => Promise<boolean>
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (email: string, username: string, password: string) => Promise<boolean>
   logout: () => void
   loading: boolean
 }
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(false)
   }, [])
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const formData = new FormData()
       formData.append('username', username)
@@ -64,14 +65,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(userData)
         setIsAuthenticated(true)
         
-        return true
+        return { success: true }
       } else {
-        console.error('Login failed:', response.statusText)
-        return false
+        const errorData = await response.json()
+        console.error('Login failed:', errorData)
+        return { success: false, error: errorData.detail || 'Invalid username or password' }
       }
     } catch (error) {
       console.error('Login error:', error)
-      return false
+      return { success: false, error: 'An error occurred during login' }
+    }
+  }
+
+  const register = async (email: string, username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          username,
+          password,
+        }),
+      })
+
+      if (response.ok) {
+        return true
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Registration failed')
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
     }
   }
 
@@ -90,6 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user, 
         token, 
         login, 
+        register,
         logout, 
         loading 
       }}

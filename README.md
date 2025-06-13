@@ -13,7 +13,7 @@ To view the backend for this project:
 
 ## Description
 
-Elara is a Next.js frontend for an AI-powered chat that recommends herbal remedies and recipes. Built with TypeScript and deployed on Google Cloud Run.
+Elara is a Next.js frontend for an AI-powered chat that recommends herbal remedies and recipes. Built with TypeScript and deployed on Google Cloud Run. Now includes user registration with email verification.
 
 ![StackElaraFrontend](https://github.com/user-attachments/assets/7f2d83a2-46d8-4303-846d-6ea978f723e5)
 
@@ -24,7 +24,7 @@ Elara is a Next.js frontend for an AI-powered chat that recommends herbal remedi
 * **Forms/Validation**: react-hook-form, Zod
 * **AI Chat**: Vercel AI SDK, Google PaLM Gemini
 * **Deployment**: Google Cloud Run (Frontend & Backend)
-* **Auth**: Service Account (JWT stored in localStorage)
+* **Auth**: Service Account (JWT stored in localStorage) + Email Verification
 
 ## High-Level Architecture
 
@@ -75,19 +75,31 @@ Zooms into the chat flow: user input → /api/chat → Gemini AI with tools → 
    gcloud run deploy elarafrontend --image "${IMAGE_PATH}" --region "${REGION}" --service-account "${SERVICE_ACCOUNT_EMAIL}" --allow-unauthenticated --project "${GCP_PROJECT_ID}" --set-  secrets="GOOGLE_GENERATIVE_AI_API_KEY=google-api-key:latest,RUNTIME_NEXT_PUBLIC_BACKEND_API_URL=api-url:latest"
    ```
 
+## New Features
+
+### User Registration & Email Verification
+
+- **Sign Up Flow**: Users can create accounts with email verification
+- **Email Verification**: Automated email sending with verification links
+- **Verification UI**: Dedicated pages for email verification status
+- **Security**: Email verification required before login
+
 ## Folder Structure
 
 ```
 ├── app/                # Next.js App Router pages
 │   ├── layout.tsx      # Global layout (AuthProvider)
-│   ├── page.tsx        # Landing page
-│   └── chat/page.tsx   # Chat interface
+│   ├── page.tsx        # Landing page with signup
+│   ├── chat/page.tsx   # Chat interface
+│   └── verify-email/   # Email verification page
 ├── components/         # Reusable UI components
 │   ├── PlantInfoCard.tsx
 │   ├── RecipeCard.tsx
 │   ├── SavedRecipesDrawer.tsx
-│   └── LoginDialog.tsx
-├── context/            # React Context (Auth)
+│   ├── LoginDialog.tsx
+│   ├── SignupDialog.tsx        # New: User registration
+│   └── EmailVerification.tsx   # New: Email verification UI
+├── context/            # React Context (Auth with registration)
 │   └── auth-context.tsx
 ├── pages/api/          # Next.js API routes
 │   └── chat.ts         # /api/chat (AI orchestration)

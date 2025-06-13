@@ -48,3 +48,41 @@ export async function getRecipe(plantName: string, scientificName: string, edibl
 
   return response.json()
 }
+
+export async function resendVerificationEmail(email: string) {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'
+  
+  const response = await fetch(`${backendUrl}/resend-verification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Failed to resend verification email')
+  }
+
+  return response.json()
+}
+
+export async function getEmailForUsername(username: string) {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000'
+  
+  const response = await fetch(`${backendUrl}/get-email-for-username`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.detail || 'Failed to get email for username')
+  }
+
+  return response.json()
+}
