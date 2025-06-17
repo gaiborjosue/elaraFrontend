@@ -99,6 +99,26 @@ export default function LandingPage() {
           <p className="text-center text-gray-500 text-base max-w-md mx-auto">
             Learn about natural plant alternatives to your health conditions
           </p>
+          <p className="text-center text-gray-400 text-sm mt-2">
+            Made by:{" "}
+            <a 
+              href="https://edwardgaibor.me" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-earth-600 transition-colors"
+            >
+              Edward
+            </a>
+            {" and "}
+            <a 
+              href="https://dariadobrolinski.me" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-earth-600 transition-colors"
+            >
+              Daria
+            </a>
+          </p>
         </footer>
       </main>
     </div>
