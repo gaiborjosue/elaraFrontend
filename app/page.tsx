@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { Button } from "@/components/ui/button"
 import { SharedHeader } from "@/components/shared-header"
 import { useAuth } from "@/context/auth-context"

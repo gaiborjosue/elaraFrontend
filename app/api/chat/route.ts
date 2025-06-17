@@ -109,7 +109,6 @@ export async function POST(req: Request) {
                     output[key].plantImageURL = output[key].plantImageURL[0];
                   }
                 }
-                
                 return { output };
               } else {
                 throw new Error("Failed to get recommendations from backend");

@@ -24,7 +24,7 @@ interface PlantDetail {
   medicalRating?: number
   edibleRating?: number
   edibleUses?: string
-  plantImageURL?: string
+  plantImageURL?: string[]
   plantURL?: string
   partsUsed?: string
   cultivation?: string
@@ -34,7 +34,7 @@ interface PlantDetail {
 }
 
 interface ToolResultOutput {
-  output: Record<string, PlantDetail>
+  output: Record<string, PlantDetail[]>
 }
 
 interface Recipe {
@@ -376,11 +376,11 @@ export default function ChatPage() {
                             if (resultData && resultData.output && Object.keys(resultData.output).length > 0) {
                               return (
                                 <SymptomPlantCarousel key={toolInvocation.toolCallId}>
-                                  {Object.entries(resultData.output).map(([symptom, plant]) => (
+                                  {Object.entries(resultData.output).map(([symptom, plants]) => (
                                     <PlantInfoCard
                                       key={`${toolInvocation.toolCallId}-${symptom}`}
                                       symptom={symptom}
-                                      plant={plant}
+                                      plants={plants}
                                     />
                                   ))}
                                 </SymptomPlantCarousel>
@@ -454,7 +454,7 @@ export default function ChatPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleDownloadPDF(resultData.data as Recipe, resultData.data.symptom)}
+                                      onClick={() => resultData.data && handleDownloadPDF(resultData.data as Recipe, resultData.data.symptom)}
                                     >
                                       <Download className="h-4 w-4 mr-2" />
                                       Download PDF

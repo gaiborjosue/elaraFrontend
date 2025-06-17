@@ -61,7 +61,6 @@ export function LoginDialog({ children }: LoginDialogProps) {
           const emailData = await getEmailForUsername(username)
           setVerificationEmail(emailData.email)
         } catch (error) {
-          // If we can't get the email, user will need to enter it manually
           console.log('Could not fetch email for username')
         }
         toast({

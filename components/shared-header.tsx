@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+import Image from "next/legacy/image"
 import { Button } from "@/components/ui/button"
 import { Menu, LogOut, BookOpen } from "lucide-react"
 import { LoginDialog } from "@/components/login-dialog"

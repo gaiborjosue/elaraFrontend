@@ -2,8 +2,8 @@
 
 import { useState } from "react" // Added useState
 import { Badge } from "@/components/ui/badge"
-import { Leaf, Star, Utensils, ExternalLink, Thermometer, Loader2, Download, Save, Check } from "lucide-react" // Added Loader2, Download, Save, Check
-import Image from "next/image"
+import { Leaf, Star, Utensils, ExternalLink, Thermometer, Loader2, Download, Save, Check, ChevronLeft, ChevronRight } from "lucide-react" // Added Loader2, Download, Save, Check, ChevronLeft, ChevronRight
+import Image from "next/legacy/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/context/auth-context"
@@ -15,7 +15,7 @@ interface PlantInfoBase {
   medicalRating?: number
   edibleRating?: number
   edibleUses?: string
-  plantImageURL?: string
+  plantImageURL?: string[]
   plantURL?: string
   partsUsed?: string
   cultivation?: string
@@ -31,7 +31,7 @@ interface RecipeOutput {
 
 interface PlantInfoCardProps {
   symptom: string
-  plant: PlantInfoBase
+  plants: PlantInfoBase[]
 }
 
 const RatingStars = ({ rating }: { rating?: number }) => {
@@ -52,9 +52,10 @@ const RatingStars = ({ rating }: { rating?: number }) => {
   )
 }
 
-export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
+export function PlantInfoCard({ symptom, plants }: PlantInfoCardProps) {
   const { token } = useAuth()
   const { toast } = useToast()
+  const [currentPlantIndex, setCurrentPlantIndex] = useState(0)
   const [detailedRecipe, setDetailedRecipe] = useState<RecipeOutput | null>(null)
   const [isRecipeLoading, setIsRecipeLoading] = useState(false)
   const [recipeError, setRecipeError] = useState<string | null>(null)
@@ -63,6 +64,38 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
+
+  // Add safety check for empty plants array
+  if (!plants || plants.length === 0) {
+    return (
+      <div className="mt-4 relative w-full max-w-xs shrink-0 transform scale-95">
+        <div className="relative overflow-hidden rounded-xl backdrop-blur-md bg-white/20 border border-white/30 shadow-xl h-full flex flex-col p-4">
+          <p className="text-earth-600">No plant data available</p>
+        </div>
+      </div>
+    )
+  }
+
+  const plant = plants[currentPlantIndex]
+  const hasMultiplePlants = plants.length > 1
+
+  const goToNextPlant = () => {
+    setCurrentPlantIndex((prev) => (prev + 1) % plants.length)
+    resetPlantState()
+  }
+
+  const goToPreviousPlant = () => {
+    setCurrentPlantIndex((prev) => (prev - 1 + plants.length) % plants.length)
+    resetPlantState()
+  }
+
+  const resetPlantState = () => {
+    setDetailedRecipe(null)
+    setRecipeError(null)
+    setHasAttemptedFetch(false)
+    setShowFullEdibleUses(false)
+    setIsSaved(false)
+  }
 
   const fetchRecipeDetails = async () => {
     if (detailedRecipe || isRecipeLoading) return // Already fetched or currently fetching
@@ -213,10 +246,10 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-earth-200/60 to-earth-400/40 backdrop-blur-md"></div>
 
         <div className="relative z-10 flex flex-col flex-grow">
-          {plant.plantImageURL && (
+          {plant.plantImageURL && plant.plantImageURL.length > 0 && (
             <div className="relative h-40 w-full">
               <Image
-                src={'https://pfaf.org/' + plant.plantImageURL.substring(3) || "/placeholder.svg"}
+                src={'https://pfaf.org/' + plant.plantImageURL[0].substring(3) || "/placeholder.svg"}
                 alt={plant.plantName}
                 layout="fill"
                 objectFit="cover"
@@ -228,14 +261,41 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
             <Badge variant="secondary" className="mb-2 bg-earth-100 text-earth-700 border-earth-300">
               For: {symptom}
             </Badge>
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-earth-600/80 backdrop-blur-sm flex items-center justify-center">
-                <Leaf className="h-4 w-4 text-white" />
+            <div className="flex items-center justify-between space-x-2">
+              <div className="flex items-center space-x-2 flex-1">
+                <div className="w-8 h-8 rounded-full bg-earth-600/80 backdrop-blur-sm flex items-center justify-center">
+                  <Leaf className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-earth-800">{plant.plantName}</h3>
+                  <p className="text-sm text-earth-700/90 italic">{plant.scientificName}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-earth-800">{plant.plantName}</h3>
-                <p className="text-sm text-earth-700/90 italic">{plant.scientificName}</p>
-              </div>
+              {hasMultiplePlants && (
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToPreviousPlant}
+                    className="h-8 w-8 p-0 hover:bg-earth-100/50"
+                    aria-label="Previous plant"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs text-earth-600 px-1">
+                    {currentPlantIndex + 1}/{plants.length}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToNextPlant}
+                    className="h-8 w-8 p-0 hover:bg-earth-100/50"
+                    aria-label="Next plant"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -371,14 +431,24 @@ export function PlantInfoCard({ symptom, plant }: PlantInfoCardProps) {
 
           {plant.plantURL && (
             <div className="p-4 pt-2 mt-auto border-t border-white/20">
-              <a
-                href={plant.plantURL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-earth-600 hover:text-earth-800 hover:underline flex items-center"
-              >
-                Learn more about {plant.plantName} <ExternalLink className="h-3 w-3 ml-1" />
-              </a>
+              <div className="flex items-center justify-between text-xs">
+                <a
+                  href={plant.plantURL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-earth-600 hover:text-earth-800 hover:underline flex items-center"
+                >
+                  Learn more abot {plant.plantName} <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+                <a
+                  href="https://pfaf.org/user/cmspage.aspx?pageid=174"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-earth-600 hover:text-earth-800 hover:underline flex items-center"
+                >
+                  References <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              </div>
             </div>
           )}
         </div>
