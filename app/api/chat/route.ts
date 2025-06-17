@@ -52,7 +52,8 @@ export async function POST(req: Request) {
       When a user describes a medical concern, use the 'findHerbalRemedies' tool.
       The tool will return plants for identified symptoms.
       After the tool provides results, YOU MUST generate a textual response.
-      In your textual response, clearly present these findings. For each symptom identified by the tool, state the suggested plant and briefly explain its key benefits or uses relevant to that symptom, drawing from the information provided by the tool if available (especially the 'benefits' field).
+      In your textual response, clearly present these findings. For each symptom identified by the tool, state the suggested plant and briefly explain its key benefits or uses relevant to that symptom, YOU MUST draw information provided by the getPLantMedicalUses tool for which you will pass the scientific name of the plant you want to get more medical uses information about.
+
       If the tool returns multiple plants for different symptoms, discuss each one.
       If a recipe or method of use is available in the tool's data, incorporate that into your textual description for the respective plant.
       
@@ -119,6 +120,33 @@ export async function POST(req: Request) {
             } catch (error) {
               console.error("Error calling backend:", error);
               throw new Error("Unable to fetch herbal remedy recommendations. Please try again later.");
+            }
+          },
+        }),
+        getPLantMedicalUses: tool({
+          description: "Retrieves detailed information about a specific plant's medical uses and properties.",
+          parameters: z.object({
+            scientificName: z.string().describe("The scientific name of the plant"),
+          }),
+          execute: async ({ scientificName }) => {
+            try {
+              const response = await fetch(`${backendUrl}/plant/medicalUses/${scientificName}`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` }),
+                }
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                return { data };
+              } else {
+                throw new Error("Failed to fetch plant details from backend");
+              }
+            } catch (error) {
+              console.error("Error calling backend:", error);
+              throw new Error("Unable to fetch plant details. Please try again later.");
             }
           },
         }),
