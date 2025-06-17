@@ -5,12 +5,15 @@ import { useRef, useEffect, useState } from "react"
 import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // Removed Avatar, AvatarFallback, AvatarImage as they are replaced for the user icon
 import { PlantInfoCard } from "@/components/plant-info-card"
 import { SymptomPlantCarousel } from "@/components/symptom-plant-carousel"
 import { RecipeCard } from "@/components/recipe-card"
 import { SavedRecipesDrawer } from "@/components/saved-recipes-drawer"
-import { ChevronDown, AlertCircle, SunIcon as Sunflower, User, BookOpen, Download } from "lucide-react"
+import { ChevronDown, AlertCircle, SunIcon as Sunflower, User, BookOpen, Download, Info } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 // Removed cn import as it's no longer used
 import { SharedHeader } from "@/components/shared-header"
@@ -78,6 +81,7 @@ export default function ChatPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const [savedRecipesOpen, setSavedRecipesOpen] = useState(false)
+  const [isEdibleMode, setIsEdibleMode] = useState(false)
 
   // Helper functions for handling tool actions
   const handleSaveRecipe = async (recipe: Recipe, symptom: string) => {
@@ -175,6 +179,9 @@ export default function ChatPage() {
     api: "/api/chat",
     headers: {
       ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: {
+      edibleMode: isEdibleMode,
     },
     onResponse: () => setErrorMessage(null),
     onError: (err) => {
@@ -494,12 +501,36 @@ export default function ChatPage() {
         )}
 
         <div className="p-4 bg-transparent sticky bottom-0">
+          <div className="flex items-center space-x-4 mb-3">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="mode-switch"
+                checked={isEdibleMode}
+                onCheckedChange={setIsEdibleMode}
+              />
+              <Label htmlFor="mode-switch" className="text-sm font-medium">
+                {isEdibleMode ? "Edibility" : "Medical"}
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-sm">
+                      This toggle selects either results to be filtered by best medical rating first and then best edible rating, or viceversa.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
           <form onSubmit={onSubmit} className="flex items-center space-x-2">
             <div className="flex-1">
               <Input
                 value={input}
                 onChange={handleInputChange}
-                placeholder="Describe your medical concern..."
+                placeholder={isEdibleMode ? "Describe your medical concern and get best plant based on edible rating..." : "Describe your medical concern and get best plant based on medical rating..."}
                 className="py-3 rounded-full border-gray-300 focus:border-earth-500 focus:ring-earth-500"
                 disabled={isLoading}
               />

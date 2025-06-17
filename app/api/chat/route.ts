@@ -28,7 +28,7 @@ const RecipeSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
-    const { messages } = body
+    const { messages, edibleMode } = body
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -95,7 +95,10 @@ export async function POST(req: Request) {
                   'Content-Type': 'application/json',
                   ...(token && { 'Authorization': `Bearer ${token}` }),
                 },
-                body: JSON.stringify({ medicalConcern }),
+                body: JSON.stringify({ 
+                  medicalConcern,
+                  edible: edibleMode || false 
+                }),
               });
               
               if (response.ok) {
