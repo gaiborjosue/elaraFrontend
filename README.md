@@ -1,6 +1,7 @@
 # **Elara Frontend**
 
 ![ElaraBannerFrontend](https://github.com/user-attachments/assets/e8f5825c-594a-4998-aebf-525f57a83ae4)
+🏆 **3rd Place Winner - MongoDB Track - ![AI in Action 2025 Hackathon](https://devpost.com/software/elara-x47age)** 🏆
 
 Developed by [@gaiborjosue](https://edwardgaibor.me) and [@dariadobrolinski](https://dariadobrolinski.me).
 
