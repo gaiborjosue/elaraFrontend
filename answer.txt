@@ -1,0 +1,72 @@
+Based on the resume and internship projects at **John Hancock - Manulife**, here’s a complete and tailored response to the internship reflection questions:
+
+---
+
+### 🔹 **What do you aim to achieve by the end of the internship? Include the scope, key tasks, and any specific methodologies or tools that will be used.**
+
+By the end of the internship, the goal is to deliver scalable, production-ready AI-powered web applications that streamline financial workflows and enhance internal tooling at John Hancock - Manulife. The key tasks include:
+
+* **Developing AI-integrated interfaces** using **Next.js**, **React**, **Azure OpenAI**, and **MongoDB** for intelligent document analysis and research assistance.
+* **Building backend services** with **FastAPI** and integrating **Flask middleware** for handling SSO authentication and secure enterprise data access.
+* **Optimizing performance**, reducing response times by 90%+, and preparing applications for internal market deployment.
+* Using **Agile methodologies**, frequent code reviews, and version control via **GitHub** to collaborate effectively with cross-functional teams.
+
+---
+
+### 🔹 **Describe the expected deliverables and outcomes of the project/position. What tangible results should the intern/co-op produce?**
+
+**Expected Deliverables:**
+
+* A **Next.js-based AI chatbot platform** capable of understanding financial documents and providing intelligent responses, ready for **production deployment**.
+* A **GenAI credit research assistant** with a functional SSO login, optimized backend pipeline, and integrated UI, already deployed for internal **market exploration**.
+* Well-documented, clean codebases, API documentation, and usage guides for handoff to internal teams.
+* Contributions to **automation** and **job scheduling pipelines**, potentially reducing manual workflows by automating tasks using tools like **Microsoft CAWA** and **R** scripts.
+
+**Tangible Outcomes:**
+
+* Improved user efficiency and data insight access within John Hancock’s internal teams.
+* Faster, AI-assisted decision-making tools for financial advisors.
+* AI models integrated with real business data, helping shape future product decisions.
+
+---
+
+### 🔹 **List the skills and competencies that the intern/co-op must have to successfully ramp up and add value to your team. Consider both technical and soft skills.**
+
+**Technical Skills:**
+
+* Proficiency in **React**, **Next.js**, **JavaScript/TypeScript**
+* Experience with **Python**, particularly **FastAPI** and **Flask**
+* Familiarity with **MongoDB** and backend development principles
+* Understanding of **SSO**, **OAuth**, or similar auth mechanisms
+* Knowledge of **AI APIs** (e.g., Azure OpenAI, generative SDKs)
+
+**Soft Skills:**
+
+* Strong problem-solving and debugging abilities
+* Clear and proactive communication, especially in a cross-functional team
+* Ability to take initiative and ownership of tasks
+* Openness to feedback and continuous learning
+* Adaptability and time management in fast-paced settings
+
+---
+
+### 🔹 **List the skills and competencies that the intern/co-op will develop through this project/rotation. Consider both technical and soft skills.**
+
+**Technical Growth:**
+
+* Mastery of full-stack application development with **modern frameworks**
+* Exposure to **enterprise-grade AI systems** and **cloud infrastructure** (Azure)
+* Practical experience in deploying and optimizing **AI-driven tools**
+* Real-world understanding of **authentication flows**, **middleware architectures**, and **data pipelines**
+* Performance optimization for **real-time AI applications**
+
+**Soft Skills:**
+
+* Collaborative development in a **corporate Agile environment**
+* Real-time problem-solving and critical thinking with ambiguous requirements
+* Enhanced **technical communication**, particularly in writing documentation and presenting features
+* Balancing innovation with business constraints and client needs
+
+---
+
+Let me know if you want to reword this more formally or casually, or if this is being submitted somewhere like a co-op report or hiring portal — I can tweak the tone accordingly!
